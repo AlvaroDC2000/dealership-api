@@ -1,0 +1,7 @@
+http://localhost:8080/api/owner/stock-unsold
+
+http://localhost:8080/api/owner/sales/by-employee
+
+http://localhost:8080/api/owner/repairs/revenue-by-dealership
+
+http://localhost:8080/api/owner/summary
