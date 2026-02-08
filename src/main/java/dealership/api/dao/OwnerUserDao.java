@@ -13,21 +13,61 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Data access object responsible for owner-level user management operations.
+ * <p>
+ * This DAO provides database access methods to validate usernames, query users
+ * with optional filters, and create new user records. It is typically used by
+ * owner-facing management endpoints.
+ * </p>
+ */
 @Repository
 public class OwnerUserDao {
 
     private final JdbcTemplate jdbc;
 
+    /**
+     * Creates a new DAO instance using the provided {@link JdbcTemplate}.
+     * <p>
+     * The JDBC template is used to execute SQL queries and updates against the
+     * underlying database.
+     * </p>
+     *
+     * @param jdbc JDBC template used for database access
+     */
     public OwnerUserDao(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
+    /**
+     * Checks whether a given username already exists in the database.
+     * <p>
+     * This method performs a simple count query on the user table using the
+     * provided username as a parameter.
+     * </p>
+     *
+     * @param username username to check
+     * @return {@code true} if the username exists, {@code false} otherwise
+     */
     public boolean existsUsername(String username) {
         String sql = "SELECT COUNT(*) FROM `user` u WHERE u.username = ?";
         Integer count = jdbc.queryForObject(sql, Integer.class, username);
         return count != null && count > 0;
     }
 
+    /**
+     * Retrieves a list of users applying optional filter criteria.
+     * <p>
+     * Filters can be applied by dealership, role, and active status. When a filter
+     * parameter is {@code null}, it is not included in the query. The result is
+     * ordered by user identifier.
+     * </p>
+     *
+     * @param dealershipId optional dealership identifier filter
+     * @param roleId optional role identifier filter
+     * @param active optional active status filter
+     * @return a list of users matching the provided filters
+     */
     public List<UserRow> findUsers(Integer dealershipId, Integer roleId, Boolean active) {
 
         StringBuilder sql = new StringBuilder();
@@ -76,6 +116,17 @@ public class OwnerUserDao {
         );
     }
 
+    /**
+     * Inserts a new user record into the database and returns the generated identifier.
+     * <p>
+     * This method persists the provided user data along with the supplied password hash.
+     * It uses a {@link KeyHolder} to obtain the auto-generated primary key.
+     * </p>
+     *
+     * @param req request object containing the user fields to insert
+     * @param passwordHash password hash to store for the new user
+     * @return the generated user identifier
+     */
     public int insertUser(CreateUserRequest req, String passwordHash) {
 
         String sql =

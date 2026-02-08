@@ -6,17 +6,39 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * Data access object responsible for repair revenue aggregation queries.
+ * <p>
+ * This DAO provides read access to aggregated financial data related to
+ * completed repair orders, grouped by dealership.
+ * </p>
+ */
 @Repository
 public class RepairDao {
 
     private final JdbcTemplate jdbc;
 
+    /**
+     * Creates a new DAO instance using the provided {@link JdbcTemplate}.
+     * <p>
+     * The JDBC template is used to execute SQL queries against the database.
+     * </p>
+     *
+     * @param jdbc JDBC template used for database access
+     */
     public RepairDao(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
     /**
      * Recaudación total por concesionario (solo reparaciones finalizadas con presupuesto).
+     * <p>
+     * This method retrieves aggregated repair revenue data for each dealership.
+     * Only repair orders that are marked as finished and have an associated
+     * estimated budget are included in the calculation.
+     * </p>
+     *
+     * @return a list of repair revenue rows grouped by dealership
      */
     public List<RepairRevenueRow> findRepairRevenueByDealership() {
 

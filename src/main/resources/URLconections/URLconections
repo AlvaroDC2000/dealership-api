@@ -5,3 +5,11 @@ http://localhost:8080/api/owner/sales/by-employee
 http://localhost:8080/api/owner/repairs/revenue-by-dealership
 
 http://localhost:8080/api/owner/summary
+
+http://localhost:8080/api/owner/users
+
+http://localhost:8080/api/owner/users?dealershipId=1
+
+http://localhost:8080/api/owner/users?roleId=2
+
+http://localhost:8080/api/owner/users?active=true
