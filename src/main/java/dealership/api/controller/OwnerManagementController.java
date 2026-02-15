@@ -6,11 +6,13 @@ import dealership.api.dao.RoleDao;
 import dealership.api.model.CreateUserRequest;
 import dealership.api.model.IdNameRow;
 import dealership.api.model.UserRow;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST controller responsible for owner-level user and reference data management.
@@ -99,41 +101,71 @@ public class OwnerManagementController {
     /**
      * Creates a new employee user.
      * <p>
-     * This endpoint validates the incoming request data, checks for username
-     * uniqueness, encodes the provided password, and persists the new user.
+     * This endpoint performs basic request validation, enforces username uniqueness,
+     * encodes the provided password using BCrypt, and persists the new user using
+     * the owner-level user DAO.
+     * </p>
+     *
+     * <p>
+     * IMPORTANT:
+     * Responses are returned as JSON (Map) to keep the API consistent and
+     * avoid client-side JSON parsing issues.
      * </p>
      *
      * @param req request object containing the user data to be created
-     * @return an HTTP response indicating success or validation errors
+     * @return an HTTP response containing either:
+     *         <ul>
+     *             <li>HTTP 201 with the created user identifier and a success message.</li>
+     *             <li>HTTP 400 with a validation error message.</li>
+     *             <li>HTTP 409 if the username already exists.</li>
+     *         </ul>
      */
     @PostMapping("/users")
-    public ResponseEntity<?> createUser(@RequestBody CreateUserRequest req) {
+    public ResponseEntity<Map<String, Object>> createUser(@RequestBody CreateUserRequest req) {
 
-        if (req.getDealershipId() <= 0 || req.getRoleId() <= 0) {
-            return ResponseEntity.badRequest().body("dealershipId y roleId son obligatorios");
+        // Validate required numeric fields
+        if (req.getDealershipId() <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Dealership is required"));
         }
+        if (req.getRoleId() <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Role is required"));
+        }
+
+        // Validate required strings
         if (req.getUsername() == null || req.getUsername().trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("username es obligatorio");
+            return ResponseEntity.badRequest().body(Map.of("error", "Username is required"));
         }
         if (req.getPassword() == null || req.getPassword().trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("password es obligatorio");
+            return ResponseEntity.badRequest().body(Map.of("error", "Password is required"));
         }
         if (req.getFullName() == null || req.getFullName().trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("fullName es obligatorio");
+            return ResponseEntity.badRequest().body(Map.of("error", "Full name is required"));
         }
 
         String username = req.getUsername().trim();
+        req.setUsername(username);
 
-        if (ownerUserDao.existsUsername(username)) {
-            return ResponseEntity.badRequest().body("El username ya existe");
+        // For the web, default to active = true if the client did not send it explicitly.
+        // This keeps the create form simple.
+        if (!req.isActive()) {
+            req.setActive(true);
         }
 
-        String hash = passwordEncoder.encode(req.getPassword());
+        // Validate username uniqueness
+        if (ownerUserDao.existsUsername(username)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "Username already exists"));
+        }
 
-        req.setUsername(username);
+        // Encode password (BCrypt)
+        String hash = passwordEncoder.encode(req.getPassword());
 
         int newId = ownerUserDao.insertUser(req, hash);
 
-        return ResponseEntity.ok("Usuario creado con id=" + newId);
+        // Return JSON (not plain text) to avoid Angular "not valid JSON" errors
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "id", newId,
+                "message", "User created successfully"
+        ));
     }
 }
